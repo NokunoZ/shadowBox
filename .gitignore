@@ -1,0 +1,55 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---------- Virtual environments ----------
+.venv/
+venv/
+env/
+ENV/
+
+# ---------- Editors / OS ----------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- Model weights (large binaries, keep out of git) ----------
+# modelholder/ keeps its noted.md; the weights themselves are downloaded
+# or produced by training, not versioned here.
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.engine
+*.tflite
+
+# ---------- Raw media / dataset clips ----------
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+
+# ---------- Cached keypoint tensors ----------
+*.npy
+*.npz
+
+# ---------- Generated splits (rebuild: python trainDataSet/dataSpliter.py) ----------
+trainDataSet/trainData/
+trainDataSet/testData/
+
+# ---------- Run outputs ----------
+runs/
+*.log
+code/runTest/confident.csv

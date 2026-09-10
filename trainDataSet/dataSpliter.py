@@ -1,0 +1,1 @@
+#create folder for testdata and train data base on classType.py then split data from dataSet to those folder

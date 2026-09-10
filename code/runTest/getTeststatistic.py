@@ -1,0 +1,1 @@
+#the percentage of correct guess produce by the model into confident.csv
