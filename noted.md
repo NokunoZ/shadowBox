@@ -58,28 +58,56 @@ So a training run can never break the demo, "which model produced this score?" h
 one answer, and a regression is one `cp` from fixed because the old file was never
 overwritten. Details and the checkpoint contract: `modelholder/noted.md`.
 
-## Decisions to confirm
+## Setup
 
-These are places where I am not sure our plans match. See each folder's `noted.md`
-for the detail.
+```
+python -m venv .venv
+.venv/Scripts/python -m pip install -r requirements.txt     --extra-index-url https://download.pytorch.org/whl/cu128
+```
 
-1. **"CNN" over what?** `claude.md` says CNN. Since stage 2 eats keypoints, not
-   pixels, the CNN would be a **1D temporal CNN** sliding over the time axis of the
-   `T x K x 2` sequence — not an image CNN. That is a good fit and still a CNN, but
-   it is a different shape of model than "CNN" usually implies. Confirm this is what
-   you meant.
-2. **No `Idle` class.** Six classes are all active moves. On a live webcam the model
-   is forced to pick one of them every frame even when the person is just standing
-   there. We probably need a seventh `Idle` / `Guard` class.
-3. **Accuracy needs labels.** `getTeststatistic.py` measures "percentage of correct
-   guesses", but `TestRun.py` reads a webcam, which has no ground truth. Accuracy
-   has to be measured against `trainDataSet/testData/`, not the live feed.
-4. **No shared pose module yet.** Both training and live inference need the exact
-   same "video -> keypoints" code. Right now there is nowhere for it to live.
-   Proposal: `code/common/`.
-5. **Environment is empty.** `.venv` has no torch and no ultralytics. We need a
-   `requirements.txt` with pinned versions before any of this runs.
-6. **Folder naming convention.** Now that the folder name *is* the class declaration,
-   freeform names let `body-shot` and `body_shot` become two separate classes.
-   Suggest lowercase with underscores, enforced by `classType.py`. Worth deciding
-   before the first clip lands, since it means renaming the six existing folders.
+The cu128 index is for the dev machine's RTX 5060 (Blackwell needs CUDA 12.8 wheels);
+swap `cu128` for `cpu` elsewhere. Nothing in the project requires a GPU.
+
+## Running it
+
+```
+python trainDataSet/classType.py          # what classes exist, and how many clips each
+python trainDataSet/dataSpliter.py        # regenerate trainData/ and testData/
+python code/trainingCode/train.py         # -> modelholder/modelVersion/classifier_v<N>.pt
+cp modelholder/modelVersion/classifier_v1.pt modelholder/runningVersion/classifier.pt
+python code/runTest/getTeststatistic.py   # -> code/runTest/confident.csv
+python code/runTest/TestRun.py            # live webcam demo
+python -m pytest                          # 75 tests, no GPU, no weights, no downloads
+```
+
+## Decisions — settled
+
+1. **"CNN" over what?** A **1D temporal CNN**, sliding over the time axis of the
+   `T x 51` sequence. Stage 2 never sees pixels, so an image CNN has nothing to look
+   at; convolving over time is what makes "how fast the wrist travels, when the hip
+   rotates" learnable. Still a CNN, as `claude.md` asks for — a different axis.
+   Built in `code/common/model.py`.
+2. **`Idle` class** — added as `trainDataSet/dataSet/idle/`. Without it the model
+   must claim a punch is happening while the person stands still. Costing one folder
+   and no code change is the open-class rule working as intended.
+3. **Accuracy comes from labels.** `getTeststatistic.py` is an offline pass over
+   `testData/`, not a consumer of `TestRun.py`. The webcam has no ground truth.
+4. **Shared code** — `code/common/` exists: `pose`, `features`, `model`, `labels`,
+   `checkpoint`, `paths`. Training and inference share one preprocessing path.
+5. **Environment** — `requirements.txt`, pinned, installed and verified on CUDA.
+6. **Naming convention** — lowercase with underscores, enforced by `classType.py`,
+   which *rejects* anything else. The four capitalised folders were renamed while
+   they were still empty.
+
+## What is left
+
+**Footage.** Every class folder is empty, so `classType.py` correctly reports zero
+classes and nothing downstream can run. That is the one blocking item; the code above
+was exercised end to end against synthetic keypoints and is waiting on clips.
+
+Two numbers should be chosen from real footage rather than kept at their defaults:
+
+- **window length T** (default 32). `train.py` prints the real clip-length
+  distribution and how many clips get stretched or thinned, which is the number to
+  pick from — a jab is fast, a dodge is slower.
+- **test ratio** (default 0.2), once it is clear how many clips per class exist.

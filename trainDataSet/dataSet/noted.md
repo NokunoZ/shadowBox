@@ -9,15 +9,17 @@ label, read by `classType.py`.
 
 ```
 dataSet/
-  Jab/  Cross/  Hook/  Uppercut/  block/  dodge/
+  block/  cross/  dodge/  hook/  idle/  jab/  uppercut/
 ```
 
 ## Hard requirement — a new class is a new folder
 
 **Adding a class must mean creating one folder here and dropping clips in it.
 Nothing else is edited by hand.** No class list literal anywhere in the project, no
-`num_classes = 6`, no `if label == "Jab"`. The six above are a starting set, not a
-fixed set — `idle`, `guard`, `overhand`, `body_shot` all arrive the same way.
+`num_classes = 6`, no `if label == "jab"`. The seven above are a starting set, not a
+fixed set — `guard`, `overhand`, `body_shot` all arrive the same way. `idle` already
+did: it was an open question in three notes, and settling it cost one folder and no
+code change, which is the rule working as intended.
 
 This is a constraint on every other module, not just on this folder:
 
@@ -27,6 +29,7 @@ This is a constraint on every other module, not just on this folder:
 | `trainDataSet/dataSpliter.py` | loop over whatever it finds, mirror the folders into `trainData/`, `testData/` |
 | `code/trainingCode/train.py` | size the output layer from `len(classes)`, store the list in the checkpoint |
 | `code/runTest/*` | read labels **from the checkpoint** in `modelholder/runningVersion/`, never rescan the folders |
+| `code/common/labels.py` | the one wrapper around the scan, so it happens in a single place |
 | `code/unitTest/` | a test that creates a temp folder and asserts it shows up as a class |
 
 ### What makes a folder count as a class
@@ -39,8 +42,9 @@ Rules to settle now, before the scan is written:
 - ignore anything starting with `.` or `_`, so `_raw/`, `_rejected/`, `.DS_Store`
   can sit here without becoming classes
 
-The empty-folder rule is why all six currently resolve to **zero** classes. That is
-correct behaviour, not a bug: no footage, no class.
+The empty-folder rule means all seven currently resolve to **zero** classes. That is
+correct behaviour, not a bug: no footage, no class. `python trainDataSet/classType.py`
+prints the discovered list and the clip count per class, and says exactly that today.
 
 ### The trap: adding a class renumbers the old ones
 
@@ -88,26 +92,26 @@ can be built or tested until there is footage here.
 Videos are gitignored (`*.mp4` and friends), so the clips live on disk only. Each
 class folder keeps its own `noted.md` so the structure survives in git.
 
-## Naming and mixed case
+## Naming — settled: lowercase with underscores
 
-`block` and `dodge` are lowercase while `Jab`, `Cross`, `Hook` and `Uppercut` are
-capitalised. Harmless on Windows, a real bug on Linux. Pick one convention.
+`Jab`, `Cross`, `Hook` and `Uppercut` were capitalised while `block` and `dodge` were
+not: harmless on Windows, a real bug on Linux. All four have been renamed, while the
+folders were still empty and a rename cost nothing.
 
-This matters more now that the folder name is the only place a class is declared: if
-folder naming is freeform, `Body Shot`, `body-shot` and `bodyShot` are three classes.
-Suggest **lowercase, no spaces, underscores between words** (`jab`, `body_shot`), and
-have `classType.py` reject anything that does not match rather than silently accept
-a near-duplicate. Pretty display names, if we want them, belong in a lookup — not in
-the folder name.
+The convention is **lowercase letters, digits, single underscores between words** —
+`jab`, `body_shot` — and `classType.py` *rejects* anything else with an error naming
+the offending folder, rather than silently accepting `body-shot` and `body_shot` as
+two classes that mean the same move. Pretty display names, if we ever want them,
+belong in a lookup, not in the folder name.
 
 ## Gaps to settle
 
-- **No `Idle` class.** All six are active moves, so on a live feed the model must
-  claim a punch is happening even when the person is standing still. A seventh
-  `Idle` / `Guard` class would fix this — and under the rule above that is exactly
-  one new folder plus a retrain, no code change.
+- ~~**No `Idle` class.**~~ Settled: `idle/` exists. Without it a live feed forces the
+  model to claim a punch is happening while the person stands still, and `block`
+  would absorb that, being the most static class. It needs footage like every other
+  class — see `idle/noted.md`.
 - **`block` and `dodge` are not punches.** They are defensive, and a dodge is mostly
-  head and torso movement while a punch is mostly arm. Grouping all six into one
+  head and torso movement while a punch is mostly arm. Grouping them all into one
   flat classifier is reasonable to start, but expect these two to behave differently.
 - **How many clips per class?** Roughly 50–100 per class is a sane starting target
   for keypoint-based classification. Keep the counts balanced.

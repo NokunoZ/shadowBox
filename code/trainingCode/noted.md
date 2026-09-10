@@ -21,9 +21,17 @@ if a model already exists, edit and replace it.*
    assume how many classes there are** — the final layer is `nn.Linear(h, len(classes))`,
    never `nn.Linear(h, 6)`, and the same goes for any class-weight vector, metric
    array or plot. Adding a boxing move should require editing zero lines here.
-2. For every clip, run YOLO26-pose and cache the keypoints to `.npy`.
-   Do this **once**, not every epoch — pose estimation is far slower than the
-   classifier and re-running it each epoch would dominate the training time.
+2. For every clip, run YOLO26-pose and cache the keypoints to `.npy`
+   (`trainDataSet/.keypointCache/`, gitignored). Do this **once**, not every epoch —
+   pose estimation is far slower than the classifier and re-running it each epoch
+   would dominate the training time.
+
+   The cache is keyed on the clip's **name, size and mtime**, not its path. One clip
+   is reachable as `dataSet/jab/x.mp4`, `trainData/jab/x.mp4` and, after the next
+   re-split, `testData/jab/x.mp4`; keying on the path would recompute pose for each
+   of those and throw the whole cache away every time `dataSpliter.py` runs. The pose
+   weights are part of the key too, so swapping stage 1 invalidates it rather than
+   silently training on keypoints from the old model.
 3. Normalise: centre on the hip midpoint, scale by torso length. Without this the
    model learns "person stands near the left of the frame" instead of "this is a jab".
 4. Sample a fixed-length window of T frames per clip.

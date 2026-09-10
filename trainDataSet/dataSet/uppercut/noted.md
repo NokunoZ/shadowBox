@@ -1,4 +1,4 @@
-# Uppercut — class folder
+# uppercut — class folder
 
 Rising vertical punch from below, with a dip in the knees before the drive upward.
 

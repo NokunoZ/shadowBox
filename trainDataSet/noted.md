@@ -57,7 +57,16 @@ Three things that decide whether the accuracy number means anything:
    Otherwise the model can score well by recognising the boxer rather than the punch.
 3. **Seed the shuffle**, so a re-run reproduces the same split.
 
-Also worth deciding: symlink or copy? Copying duplicates every video on disk.
+Copy or symlink? **Hardlink**, by default (`--mode`). A hardlink costs no extra disk
+and needs no admin rights on Windows, which a symlink does; it falls back to a copy
+automatically when the split folders land on a different volume. `--mode copy` and
+`--mode symlink` are there if the default ever gets in the way.
+
+The person/session rule needs a filename convention, since a file cannot say who is in
+it: **everything before a double underscore is the person and session** —
+`kasi_s01__jab_004.mp4` groups with `kasi_s01__jab_005.mp4` and the two never land on
+opposite sides. A clip with no `__` is its own group, which is the right default while
+one person is filming.
 
 ### It must follow the class list, not repeat it
 
@@ -71,11 +80,27 @@ by folder:
   class that was renamed or removed leaves a stale folder behind that the next
   training run happily picks up as a real class.
 
+### When a class has only one person/session
+
+Keeping groups whole is impossible to combine with the ratio if a class has exactly
+one group — every clip would land on the same side, leaving train or test empty. The
+splitter falls back to splitting whole *clips* in that case and **says so on stderr**.
+Rule 1 still holds (no clip is ever on both sides), rule 2 cannot, and the score then
+partly measures recognising the boxer. That warning is the signal to film someone else,
+or another session.
+
 Per-class minimum: if a class has too few clips to give the test split at least a
 couple of examples, say so loudly at split time. A class with one test clip has an
 accuracy that is 0% or 100% and means nothing.
 
-## Open question — no validation split
+## Validation split — settled, and it is not a folder
 
-Only train and test exist. Tuning against the test set inflates the reported score.
-Suggest a third `valData/` split, or carving a val slice out of train.
+Only `trainData/` and `testData/` exist on disk, and tuning against the test set
+inflates the reported score. The val slice is therefore **carved out of trainData at
+training time** (`train.py --val-ratio`, default 0.2, stratified per class and seeded),
+rather than becoming a third folder.
+
+Why not a `valData/` folder: the split here is about which *clips* exist, and a third
+folder would have to be regenerated and gitignored alongside the others for no gain.
+Carving in `train.py` keeps the test split untouched by anything that tunes, which is
+the property that actually matters.

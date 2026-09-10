@@ -42,6 +42,8 @@ desktop.ini
 *.webm
 
 # ---------- Cached keypoint tensors ----------
+# rebuilt by running training again; keyed on clip name + size + mtime + pose weights
+trainDataSet/.keypointCache/
 *.npy
 *.npz
 

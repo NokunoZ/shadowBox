@@ -35,10 +35,11 @@ in the demo with no edit to this file.
 
 Two things to get right:
 - **Speed.** YOLO-pose plus the classifier every frame may not hold real time on CPU.
-  If it stutters: use the smaller pose model, or classify every N frames while
-  keeping the pose running every frame.
-- **Flicker.** Frame-by-frame argmax jitters between classes. Smooth over a short
-  window, and stay silent below a confidence floor rather than guessing.
+  Handled with `--classify-every N` (default 2): pose still runs every frame so the
+  skeleton stays smooth, the classifier runs on every Nth. Raise it if it stutters.
+- **Flicker.** Frame-by-frame argmax jitters between classes. Handled with
+  `--smoothing N` (default 5), averaging the last N probability vectors, and
+  `--floor` (default 0.5), below which the overlay shows `...` rather than guessing.
 
 ## getTeststatistic.py — the score
 
