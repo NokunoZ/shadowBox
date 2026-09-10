@@ -14,13 +14,15 @@ index-shift trap that comes with it, in `trainDataSet/dataSet/noted.md`.
 video clip / webcam
         |
         v
-[ stage 1 ]  YOLO26-pose  (modelholder/yolo26s-pose.pt)   <- pretrained, NOT trained by us
+[ stage 1 ]  YOLO26-pose                                  <- pretrained, NOT trained by us
+             modelholder/runningVersion/yolo26s-pose.pt
         |
         v
 keypoint sequence:  T frames x K joints x (x, y, confidence)
         |
         v
-[ stage 2 ]  PyTorch classifier  (modelholder/*.pt)       <- this is what we train
+[ stage 2 ]  PyTorch classifier                           <- this is what we train
+             modelholder/runningVersion/classifier.pt
         |
         v
 class label + confidence
@@ -39,7 +41,22 @@ pixels means we need hundreds of clips, not hundreds of thousands.
 | `code/trainingCode/` | trains the stage-2 classifier |
 | `code/runTest/` | live webcam demo + accuracy report |
 | `code/unitTest/` | per-module tests |
-| `modelholder/` | all model weights (stage 1 and stage 2) |
+| `modelholder/modelVersion/` | every trained classifier, one file per run, never overwritten |
+| `modelholder/runningVersion/` | the weights that actually run — pose model + the promoted classifier |
+
+## Two model folders, one rule
+
+Training writes a new `classifier_v<N>.pt` into `modelholder/modelVersion/` and stops
+there. `code/runTest/` loads `modelholder/runningVersion/classifier.pt` and looks
+nowhere else. Moving a version from the first to the second is a manual copy:
+
+```
+cp modelholder/modelVersion/classifier_v3.pt modelholder/runningVersion/classifier.pt
+```
+
+So a training run can never break the demo, "which model produced this score?" has
+one answer, and a regression is one `cp` from fixed because the old file was never
+overwritten. Details and the checkpoint contract: `modelholder/noted.md`.
 
 ## Decisions to confirm
 

@@ -2,11 +2,16 @@
 
 Split by *when* the code runs, not by what it imports.
 
-| folder | when it runs |
-|---|---|
-| `trainingCode/` | offline, once per model version |
-| `runTest/` | after training, to demo and to score |
-| `unitTest/` | any time, on every module |
+| folder | when it runs | which weights it touches |
+|---|---|---|
+| `trainingCode/` | offline, once per model version | writes `modelholder/modelVersion/`, reads `runningVersion/yolo26s-pose.pt` |
+| `runTest/` | after training, to demo and to score | reads `modelholder/runningVersion/` only |
+| `unitTest/` | any time, on every module | none — tests must not need weights |
+
+Training writes to the archive, running reads from the promoted copy, and the two
+never overlap: a training run cannot change what the demo is doing, and a demo cannot
+be pointed at a half-written file. Promotion between them is a manual copy, described
+in `modelholder/noted.md`.
 
 ## Missing piece: shared code
 
@@ -17,7 +22,14 @@ accuracy quietly collapses. That bug is invisible and expensive.
 
 Proposal — add `code/common/`:
 
-- `pose.py` — load YOLO26-pose once, run a clip or a frame, return keypoints
+- `pose.py` — load YOLO26-pose once from `modelholder/runningVersion/yolo26s-pose.pt`,
+  run a clip or a frame, return keypoints. One place holds that path, so training and
+  inference cannot end up on different pose weights
+- `checkpoint.py` — the one place that knows the `modelVersion/` and `runningVersion/`
+  paths: work out the next version number when saving, load
+  `runningVersion/classifier.pt` when running, and refuse a checkpoint whose class
+  list or preprocessing settings do not match what the caller expects. Without it
+  those paths get retyped in three scripts and drift
 - `features.py` — normalise keypoints (centre on hips, scale by torso length),
   build the fixed-length window the classifier expects
 - `model.py` — the classifier architecture definition, imported by both training

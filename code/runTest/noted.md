@@ -3,11 +3,24 @@
 Two different jobs live here. They are easy to confuse, so keeping them straight
 matters.
 
+## Both scripts load from `modelholder/runningVersion/`
+
+`runningVersion/yolo26s-pose.pt` and `runningVersion/classifier.pt`, both as fixed
+paths. Neither script looks in `modelholder/modelVersion/` and neither picks "the
+newest file" — if each script chose its own model, the demo could be showing one
+version while `confident.csv` scores another, and the two would never disagree out
+loud. Swapping the model is a copy into `runningVersion/`, not an edit here; see
+`modelholder/noted.md`.
+
+Both should print which version they loaded, taken from the checkpoint's stored
+version tag, since the filename is deliberately constant.
+
 ## TestRun.py — the live demo
 
 *Capture video, show which class is firing and its confidence.*
 
-- **in** — webcam (or a video file, useful for repeatable debugging)
+- **in** — webcam (or a video file, useful for repeatable debugging), plus
+  `modelholder/runningVersion/` for both stages
 - **out** — an on-screen overlay. Qualitative only, produces no numbers.
 
 Runs both stages per frame on a rolling buffer of the last T frames. Must reuse the
@@ -31,7 +44,8 @@ Two things to get right:
 
 *Percentage of correct guesses, into `confident.csv`.*
 
-- **in** — `trainDataSet/testData/` (labelled clips)
+- **in** — `trainDataSet/testData/` (labelled clips), plus
+  `modelholder/runningVersion/` for both stages
 - **out** — `confident.csv`
 
 ### The mismatch worth settling
@@ -42,6 +56,10 @@ from the labelled `testData/` split instead.
 
 So `getTeststatistic.py` should be a separate offline pass over `testData/` — not a
 consumer of `TestRun.py`'s output. `TestRun.py` stays a demo; this stays the metric.
+
+This is also how a candidate version gets judged: promote `classifier_v4.pt` into
+`runningVersion/`, run this, compare against the previous version's numbers, and keep
+or roll back. That comparison is the reason `modelVersion/` keeps every file.
 
 Because the class list is whatever the checkpoint says, this script must also
 **verify the folders match**: if `testData/` contains a class the checkpoint has
@@ -56,6 +74,12 @@ per test clip — `clip, true_label, predicted_label, confidence` — rather tha
 single summary number. Per-clip rows let us find *which* moves fail; a lone accuracy
 figure does not. A confusion matrix on top of that would show, for example, whether
 Cross is being read as Jab, which is the likely failure given how similar they are.
+
+Record the model version in the output too — the header, a filename suffix, or a
+column. `runningVersion/classifier.pt` is a constant path whose contents change on
+every promotion, so a `confident.csv` with no version in it cannot be attributed to
+the model that produced it, and comparing two runs becomes guesswork. The version tag
+comes from the checkpoint (see `modelholder/noted.md`).
 
 Rows carry the label **names**, never bare indices — an index in a CSV is unreadable
 once a class has been added. The confusion matrix is sized `n x n` from the class

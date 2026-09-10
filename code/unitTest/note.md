@@ -28,7 +28,16 @@ belongs here is the plumbing around the model, which is where the silent bugs ar
 - **windowing** — a clip shorter than T and a clip longer than T both come out at
   length T.
 - **checkpoint round-trip** — save a model, load it, get identical outputs, and get
-  back the same class list in the same order.
+  back the same class list in the same order. Include the version tag and archive
+  filename in what is asserted — a promoted copy is renamed to `classifier.pt`, so
+  those fields are the only thing identifying it.
+- **versioning never overwrites** — against a temp folder standing in for
+  `modelVersion/`: saving into a folder holding `classifier_v1.pt` and
+  `classifier_v2.pt` produces `classifier_v3.pt`, and saving when the target name
+  already exists raises instead of replacing it. This is the test that protects every
+  previously trained model.
+- **training does not touch `runningVersion/`** — run a save against temp folders and
+  assert the running folder is byte-identical afterwards.
 - **class-count mismatch** — loading a checkpoint whose class list disagrees with the
   current folders raises, rather than running with labels shifted by one. Build the
   model for N classes, save, then load against N+1 and assert it fails.
@@ -42,4 +51,7 @@ two each) checked in so tests do not depend on the full dataset — note that `.
 is gitignored, so a fixture would need an explicit exception in `.gitignore`, or
 better, generate synthetic keypoint arrays in code and skip video entirely.
 
-Tests must not need a GPU and must not download weights.
+Tests must not need a GPU and must not download weights. Anything touching
+`modelVersion/` or `runningVersion/` runs against `tmp_path`, never the real
+`modelholder/` — a test that promotes or overwrites for real is a test that can
+destroy the working model.

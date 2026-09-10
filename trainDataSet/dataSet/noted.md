@@ -26,7 +26,7 @@ This is a constraint on every other module, not just on this folder:
 | `trainDataSet/classType.py` | scan this directory at runtime, return the sorted names |
 | `trainDataSet/dataSpliter.py` | loop over whatever it finds, mirror the folders into `trainData/`, `testData/` |
 | `code/trainingCode/train.py` | size the output layer from `len(classes)`, store the list in the checkpoint |
-| `code/runTest/*` | read labels **from the checkpoint**, never rescan the folders |
+| `code/runTest/*` | read labels **from the checkpoint** in `modelholder/runningVersion/`, never rescan the folders |
 | `code/unitTest/` | a test that creates a temp folder and asserts it shows up as a class |
 
 ### What makes a folder count as a class
@@ -68,7 +68,11 @@ An old checkpoint still outputs "3" and now that reads as `Jab` instead of
    gitignored, so without it the folder does not exist for anyone else who clones
 3. re-run `dataSpliter.py` — the split is regenerated, not patched
 4. retrain; the old checkpoint cannot be reused, the output layer changed shape
-5. save as a new version, so the previous model still exists if the new class hurts
+5. it saves as a new `classifier_v<N>.pt` in `modelholder/modelVersion/`, so the
+   previous model still exists if the new class hurts
+6. promote it into `modelholder/runningVersion/` only after scoring it against the
+   old one — until you do, the demo and the score keep using the previous model, and
+   that previous model is what the comparison is against
 
 All six are currently empty. This is the blocking item: nothing else in the project
 can be built or tested until there is footage here.

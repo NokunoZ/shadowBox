@@ -8,8 +8,11 @@ if a model already exists, edit and replace it.*
 ### Contract
 
 - **in** — `trainDataSet/trainData/` (and a validation split, see below)
-- **out** — a weights file in `modelholder/`
+- **out** — a new versioned checkpoint in `modelholder/modelVersion/`, e.g. `classifier_v4.pt`
 - **never** — this script does not train YOLO. Stage 1 is frozen pretrained weights.
+- **never** — this script does not write to `modelholder/runningVersion/`. Training must
+  not be able to change what the demo and the score are using; promoting is a separate,
+  deliberate copy (see `modelholder/noted.md`).
 
 ### Steps
 
@@ -25,16 +28,34 @@ if a model already exists, edit and replace it.*
    model learns "person stands near the left of the frame" instead of "this is a jab".
 4. Sample a fixed-length window of T frames per clip.
 5. Train the 1D temporal CNN. Track train and validation loss separately.
-6. Save weights **plus** the class-index-to-name map and the preprocessing settings
-   (T, normalisation, keypoint format) in the same checkpoint. The class map is what
+6. Save weights **plus** the class-index-to-name map, the preprocessing settings
+   (T, normalisation, keypoint format) and the version tag in the same checkpoint,
+   written to `modelholder/modelVersion/classifier_v<N>.pt`. The class map is what
    makes the checkpoint survive someone adding a folder later — without it, a model
    trained on six classes is unreadable the moment the folder count changes.
 
-### "replace the existing model" — careful
+### "replace the existing model" — careful, and the answer is: don't
 
 Overwriting in place means a bad training run destroys a good model with no way back.
-Suggest writing versioned files (`classifier_v3.pt`) and updating a `latest` pointer,
-so a regression is one rename away from fixed.
+The folder layout settles this instead:
+
+- **Write** a new numbered file into `modelholder/modelVersion/` — never overwrite an
+  existing one. The next number is `max(existing) + 1`, discovered by scanning that
+  folder, so nothing has to be bumped by hand. If the target name somehow already
+  exists, stop rather than replace.
+- **Do not touch** `modelholder/runningVersion/`. Finishing a training run changes
+  nothing about what runs; the previous model keeps serving the demo and the score
+  until someone promotes the new one on purpose.
+- **Promote** by copying the archive file over `runningVersion/classifier.pt`, once
+  the new version has actually been scored against the old one. Rollback is the same
+  copy with the previous version.
+
+So the original intent — *edit and replace the existing model* — becomes: add a
+version, then decide. The replacing step is one `cp`, and it is reversible because
+the archive still holds both files.
+
+Stamp the version tag and the archive filename into the checkpoint itself, since the
+promoted copy is renamed to `classifier.pt` and would otherwise be anonymous.
 
 ## Adding a class means retraining from scratch
 
@@ -45,7 +66,9 @@ shifts index. So:
 - **The old checkpoint cannot be fine-tuned into the new one** by loading its
   `state_dict` — the last layer's shape no longer matches, and the surviving weights
   are wired to the old ordering. Either train fresh, or transplant the old weights
-  deliberately by *name*, matching old class names to new indices.
+  deliberately by *name*, matching old class names to new indices. `--resume` reads
+  from `modelholder/modelVersion/`, by explicit filename: resuming from "whatever is
+  running" would make a run unreproducible the next time someone promotes something.
 - **Fail loudly on a mismatch.** If `--resume` is given a checkpoint whose class list
   differs from the current scan, stop with a message naming the added and removed
   classes. Silently resuming here is the exact bug that produces a model which is
@@ -66,5 +89,6 @@ shifts index. So:
   or the table goes stale the first time a folder is added.
 - **A newly added class hurting the old ones.** More classes means more ways to be
   wrong, so per-class accuracy on the previous classes should be compared before and
-  after. That is the reason for versioned checkpoints: if `idle/` costs five points
-  on `Hook`, the previous model is still there.
+  after. That is the reason `modelVersion/` keeps everything: promote the new version,
+  score it, promote the old one back, score it, compare. If `idle/` costs five points
+  on `Hook`, the previous model is one `cp` away.
