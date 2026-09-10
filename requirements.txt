@@ -1,0 +1,23 @@
+# shadowBox — pinned environment
+#
+# GPU note: the dev machine is an RTX 5060 (Blackwell, sm_120), which needs CUDA 12.8
+# wheels. Torch is therefore installed from the PyTorch index, not PyPI:
+#
+#   python -m pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu128
+#
+# On a CPU-only machine, swap cu128 for cpu in that URL. Everything else is unchanged;
+# nothing in the project assumes a GPU (see code/common/model.py).
+
+torch==2.9.1+cu128
+torchvision==0.24.1+cu128
+
+# stage 1: YOLO26-pose. Also pulls opencv, numpy, pyyaml, pillow.
+ultralytics==8.4.146
+
+# pinned explicitly because the whole pipeline is numpy arrays and cv2 capture,
+# not left to whatever ultralytics happens to resolve to.
+numpy==2.2.6
+opencv-python==4.12.0.88
+
+# tests (code/unitTest/) — no GPU, no weights, no downloads.
+pytest==8.4.2

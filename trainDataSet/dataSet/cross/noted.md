@@ -1,4 +1,4 @@
-# Cross — class folder
+# cross — class folder
 
 Rear-hand straight punch. Straight like the jab, but slower, longer, with clear hip
 and shoulder rotation driving from the back foot.

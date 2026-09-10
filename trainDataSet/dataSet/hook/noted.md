@@ -1,4 +1,4 @@
-# Hook — class folder
+# hook — class folder
 
 Horizontal arc punch, elbow bent near 90 degrees, driven by body rotation.
 

@@ -37,15 +37,28 @@ guess.
 folder is "what runs", not "what we produced". It is the one file here that is not a
 copy of anything in `../modelVersion/`.
 
-Its provenance is currently unrecorded — it arrived in the project with no note of
-source or version. Fill this in once confirmed:
+Provenance, read out of the checkpoint itself and recorded here so that "which pose
+weights produced these keypoints?" stays answerable:
 
-- source / download URL: _unknown, needs confirming_
-- version or release tag: _unknown_
-- SHA256: _unrecorded_
+| | |
+|---|---|
+| file | `yolo26s-pose.pt` |
+| size | 24,151,790 bytes |
+| SHA256 | `a083adb42303728ae14c4bd6bd56d80da46f82fb2564dbd6f31dcc92ea321646` |
+| task | `pose` |
+| keypoints | COCO-17, `(x, y, confidence)` — what `code/common/features.py` assumes |
+| detects | one class, `person` |
+| exported by | ultralytics 8.3.222, 2026-01-11 |
+| source URL | **still unrecorded** — the file arrived in the project with no note of where it was downloaded from |
 
-Without it, "which pose weights produced these keypoints?" is unanswerable, and every
-cached `.npy` and every trained classifier downstream inherits that gap.
+The download URL is the one gap left. Everything else above was recovered from the
+file; a URL cannot be, so if this file is ever lost, re-obtaining *these exact* weights
+means matching that SHA256 against whatever is downloaded.
+
+The keypoint layout is not a detail: `common/features.py` centres on joints 11 and 12
+and scales by the distance to 5 and 6, which is only the torso if the layout really is
+COCO-17. `common/pose.py` raises if a pose model returns anything else, rather than
+normalising by a nonsense length.
 
 ## Gitignored
 

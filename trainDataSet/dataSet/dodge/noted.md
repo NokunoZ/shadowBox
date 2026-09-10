@@ -14,7 +14,4 @@ Everything else in the dataset is arm-driven. Two consequences:
 Consider whether slip / duck / lean should later become separate classes, or stay
 merged as one `dodge`. Merged is the right call to start.
 
-Name is lowercase while `Jab`/`Cross`/`Hook`/`Uppercut` are capitalised. See
-`../noted.md`.
-
 Clips are gitignored; this note keeps the folder in git.

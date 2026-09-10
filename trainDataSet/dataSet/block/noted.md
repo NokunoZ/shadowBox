@@ -15,7 +15,4 @@ Put clips of **only this move** here. The folder name is the label.
   be held indefinitely. Decide a convention — suggest trimming to the moment the
   guard comes up — and apply it to every clip.
 
-Name is lowercase while `Jab`/`Cross`/`Hook`/`Uppercut` are capitalised. See
-`../noted.md`.
-
 Clips are gitignored; this note keeps the folder in git.
